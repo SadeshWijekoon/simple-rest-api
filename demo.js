@@ -1,76 +1,60 @@
 const express = require('express');
+const jwt =require('jsonwebtoken');
 
-const app = express();
-app.use(express.json())
-const port = 3000;
+const app =express()
 
-let movies = [
-  {
-    id:'1',
-    title :'Inception',
-    director:'Christoper Nolen',
-    release_date:'2016-07-16',
-  },
-  {
-    id:'2',
-    title :'The Irishman',
-    director:'Martin',
-    release_date:'2019-09-27',
-  },
-]
-
-// get the movie
- app.get('/movie',(req,res)=>{
-    res.json(movies)
- })
-
- // get the movie by filtering 
- app.get('/movie/:id',(req,res)=>{
-    const found = movies.find(movie=>movie.id===req.params.id)
-    if (found){
-        res.json(found)
-    } else{
-        res.sendStatus(400)
-    }
- })
-  // add the movie
-  app.post('/movie',(req,res)=>{
-   
-   const update ={...req.body, id:String(movies.length+1) }
-   movies.push(update)
-   res.json(update)
-  })
-
-  // update a movie
-  app.put('/movie/:id',(req,res)=>{
-    const found = movies.some(movie=>movie.id===req.params.id)
-    if (found){
-        movies.forEach(movie=>{
-            if(movie.id===req.params.id){
-                movie.title=req.body.title,
-                movie.director=req.body.director,
-                movie.release_date=req.body.release_date
-            }else{
-                movie
-            }
-        })
-        res.json(movies)
+const verifyToken=(req,res,next)=>{ // check this before reasching to the router 
+    const bearerHeader = req.headers['authorization'] // this is send by the client and it's look likes Bearer <token>
+    if (typeof bearerHeader !== 'undefined'){
+     const bearerToken=bearerHeader.split(' ')[1]
+     console.log('Bearer Token:', bearerToken);
+     req.token = bearerToken
+     next() // this let to acsses the protected route if the token is right
     }else{
-        res.sendStatus(400)
+      res.sendStatus(403)
+    }
+ }
+
+app.get('/api',(req,res)=>{ // public route
+    res.json(
+        {
+            message:'Hey There',
+        }
+    )
+})
+
+app.post('/api/posts',verifyToken,(req,res)=>{ // procted route
+    jwt.verify(req.token,'secretkey',(err,authData)=>{
+        if (err){
+            res.sendStatus(403)
+        }else {
+            res.json({
+                message:'Post Created',
+                authData
+            })
+        }
+    })  
+})
+
+app.post('/api/login',(req,res)=>{
+    const user = {
+        id:1,
+        username:"John",
+        email:"John@gmail.com"
     }
 
-    // delete a movie
-    app.delete('/movie/:id',(req,res)=>{
-        const found = movies.findIndex(movie=>movie.id===req.params.id)
-        if(found){
-            movies.splice(found,1)
-            res.json(movies)
+    jwt.sign({user:user},'secretkey',(err,token)=>{ // if somathing goes eron get the err
+        if (err){
+            res.sendStatus(500)
+        }else{
+            res.json({token})
         }
     })
-  })
+})
 
- app.listen(port,()=>{
-    console.log(`server is started on ${port}`);
+
+
+app.listen(3000,()=>{
+    console.log('server is runnig');
     
- })
-
+})
