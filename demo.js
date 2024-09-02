@@ -1,60 +1,95 @@
 const express = require('express');
-const jwt =require('jsonwebtoken');
+const mySql = require('mysql');
 
-const app =express()
-
-const verifyToken=(req,res,next)=>{ // check this before reasching to the router 
-    const bearerHeader = req.headers['authorization'] // this is send by the client and it's look likes Bearer <token>
-    if (typeof bearerHeader !== 'undefined'){
-     const bearerToken=bearerHeader.split(' ')[1]
-     console.log('Bearer Token:', bearerToken);
-     req.token = bearerToken
-     next() // this let to acsses the protected route if the token is right
-    }else{
-      res.sendStatus(403)
-    }
- }
-
-app.get('/api',(req,res)=>{ // public route
-    res.json(
-        {
-            message:'Hey There',
-        }
-    )
+// create a connection
+const db = mySql.createConnection({
+    host:'localhost',
+    user:'root',
+    password:'', // no password 
+    database:'nodemysql'
 })
 
-app.post('/api/posts',verifyToken,(req,res)=>{ // procted route
-    jwt.verify(req.token,'secretkey',(err,authData)=>{
-        if (err){
-            res.sendStatus(403)
-        }else {
-            res.json({
-                message:'Post Created',
-                authData
-            })
-        }
-    })  
+// connect to my mySql
+db.connect(err=>{
+    if(err){
+        throw err
+    }
+    console.log('my sql connected');
+    
 })
 
-app.post('/api/login',(req,res)=>{
-    const user = {
-        id:1,
-        username:"John",
-        email:"John@gmail.com"
-    }
+const app = express();
 
-    jwt.sign({user:user},'secretkey',(err,token)=>{ // if somathing goes eron get the err
+// create a database
+app.get('/createdb',(req,res)=>{
+    let sql = 'CREATE DATABASE nodemysql'
+    db.query(sql, err=>{ // this method is use to excecute sql quries in sql server 
         if (err){
-            res.sendStatus(500)
-        }else{
-            res.json({token})
+            throw err
         }
+        res.send('Database Created')
+    })
+})
+
+// create table 
+app.get('/createemploye',(req,res)=>{
+    let sql='CREATE TABLE employee(id int AUTO_INCREMENT, name VARCHAR(255),designation VARCHAR(225),PRIMARY KEY(id))'
+    db.query(sql,err=>{
+        if(err){
+            throw err
+        }
+        res.send('Employee Table Created')
+    })
+})
+// insert employee
+app.get('/employee1',(req,res)=>{
+    let post ={name:"Jake Smith",designation:"CEO"}
+    let sql = 'INSERT INTO employee SET ?' // ? gonna replace with post
+    db.query(sql,post,err=>{
+        if(err){
+            throw err
+        }
+        res.send('Employee 1 add')
+    })
+})
+// select employee
+app.get('/getemployee',(req,res)=>{
+    let sql = 'SELECT * FROM employee'
+    let quary = db.query(sql,(err,result)=>{
+        if(err){
+            throw(err)
+        }
+        console.log(result);
+        
+        res.send('Employee Details Fetched')
+    })
+})
+//update employee
+app.get('/updateemployee/:id',(req,res)=>{
+    let newUser = 'UPDATE name'
+    let sql = `UPDATE employee SET name = '${newUser}' WHERE id='${req.params.id}' `
+    db.query(sql,(err,result)=>{
+        if (err){
+            throw err
+        }
+        console.log(result);
+        res.send('Update the Employee')
+        
+    })
+})
+// delete employee
+app.get('/delete/:id',(req,res)=>{
+    let sql = `DELETE FROM employee WHERE id = ${req.params.id} `
+    db.query(sql,(err)=>{
+        if(err){
+         throw err
+        }
+        res.send('delete the employee')
     })
 })
 
 
-
-app.listen(3000,()=>{
-    console.log('server is runnig');
+app.listen('3000',()=>{
+    console.log('Server Started');
     
 })
