@@ -1,95 +1,34 @@
 const express = require('express');
-const mySql = require('mysql');
+const path = require('path');
+const handlebars = require('handlebars');
+const exphbs = require('express-handlebars');
+const { allowInsecurePrototypeAccess } = require('@handlebars/allow-prototype-access');
+const bodyParser = require('body-parser'); // need to download this as well if we use older method  
 
-// create a connection
-const db = mySql.createConnection({
-    host:'localhost',
-    user:'root',
-    password:'', // no password 
-    database:'nodemysql'
-})
+const app =express();
 
-// connect to my mySql
-db.connect(err=>{
-    if(err){
-        throw err
-    }
-    console.log('my sql connected');
-    
-})
+//middlewares
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json()); // older method of  app.use(express.json())
 
-const app = express();
-
-// create a database
-app.get('/createdb',(req,res)=>{
-    let sql = 'CREATE DATABASE nodemysql'
-    db.query(sql, err=>{ // this method is use to excecute sql quries in sql server 
-        if (err){
-            throw err
-        }
-        res.send('Database Created')
-    })
+app.get('/',(req,res)=>{
+    res.send(`
+      <h2> Welcome To The Studen Table </h2>
+      <h3> Click Here <b> <a href ='/student/list'>Database<a/></h3>  `)
 })
 
-// create table 
-app.get('/createemploye',(req,res)=>{
-    let sql='CREATE TABLE employee(id int AUTO_INCREMENT, name VARCHAR(255),designation VARCHAR(225),PRIMARY KEY(id))'
-    db.query(sql,err=>{
-        if(err){
-            throw err
-        }
-        res.send('Employee Table Created')
-    })
-})
-// insert employee
-app.get('/employee1',(req,res)=>{
-    let post ={name:"Jake Smith",designation:"CEO"}
-    let sql = 'INSERT INTO employee SET ?' // ? gonna replace with post
-    db.query(sql,post,err=>{
-        if(err){
-            throw err
-        }
-        res.send('Employee 1 add')
-    })
-})
-// select employee
-app.get('/getemployee',(req,res)=>{
-    let sql = 'SELECT * FROM employee'
-    let quary = db.query(sql,(err,result)=>{
-        if(err){
-            throw(err)
-        }
-        console.log(result);
-        
-        res.send('Employee Details Fetched')
-    })
-})
-//update employee
-app.get('/updateemployee/:id',(req,res)=>{
-    let newUser = 'UPDATE name'
-    let sql = `UPDATE employee SET name = '${newUser}' WHERE id='${req.params.id}' `
-    db.query(sql,(err,result)=>{
-        if (err){
-            throw err
-        }
-        console.log(result);
-        res.send('Update the Employee')
-        
-    })
-})
-// delete employee
-app.get('/delete/:id',(req,res)=>{
-    let sql = `DELETE FROM employee WHERE id = ${req.params.id} `
-    db.query(sql,(err)=>{
-        if(err){
-         throw err
-        }
-        res.send('delete the employee')
-    })
-})
+app.set('views',path.join(__dirname,'/views'))
 
+app.engine('hbs',exphbs({
+  handlebars:allowInsecurePrototypeAccess,
+  extname: 'hbs',
+  defaultLayout :'MainLayout',
+  layoutsDir:__dirname + '/views/layouts'
+}))
 
-app.listen('3000',()=>{
-    console.log('Server Started');
+app.set('view engine', 'hbs');
+
+app.listen(3000,()=>{
+    console.log('server is started');
     
 })
